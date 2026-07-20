@@ -137,11 +137,7 @@ function getHtmlTemplate(slide, palette) {
           </p>
         </div>
 
-        <!-- Footer -->
-        <div class="pb-4 border-t border-gray-800/60 flex justify-between items-center z-10 pt-10">
-          <span class="text-xl font-medium text-gray-500 tracking-wider">MERN Stack & Full-Stack Development</span>
-        </div>
-
+  
       </div>
 
       <script>
