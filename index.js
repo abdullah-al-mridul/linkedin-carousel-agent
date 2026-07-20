@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import puppeteer from "puppeteer";
 import fs from "fs";
 import dotenv from "dotenv";
+import { PDFDocument } from "pdf-lib";
 
 dotenv.config();
 
@@ -96,7 +97,6 @@ function getHtmlTemplate(slide, palette) {
         body { font-family: 'Inter', sans-serif; background-color: ${palette.bg}; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         span { color: ${palette.textHi}; }
-        /* Make highlight.js background transparent to match your aesthetic */
         .hljs { background: transparent !important; padding: 0 !important; }
         pre { margin: 0 !important; padding: 0 !important; }
       </style>
@@ -126,22 +126,22 @@ function getHtmlTemplate(slide, palette) {
             ${slide.title}
           </h1>
           
-       ${
-         slide.codeSnippet
-           ? `<div class="font-mono text-2xl font-medium leading-relaxed p-6 rounded-2xl border border-white/10 bg-transparent"><pre class="m-0 p-0 whitespace-pre-wrap break-words"><code class="language-javascript m-0 p-0">${slide.codeSnippet.trim()}</code></pre></div>`
-           : ""
-       }
+          ${
+            slide.codeSnippet
+              ? `<div class="font-mono text-2xl font-medium leading-relaxed p-6 rounded-2xl border border-white/10 bg-transparent"><pre class="m-0 p-0 whitespace-pre-wrap break-words"><code class="language-javascript m-0 p-0">${slide.codeSnippet.trim()}</code></pre></div>`
+              : ""
+          }
 
           <p class="text-gray-400 text-3xl leading-normal max-w-[95%] pt-4">
             ${slide.description}
           </p>
         </div>
 
-  
+     
+
       </div>
 
       <script>
-        // Trigger Highlight.js on page render
         hljs.highlightAll();
       </script>
     </body>
@@ -149,12 +149,12 @@ function getHtmlTemplate(slide, palette) {
     `;
 }
 
-async function renderImages(slides, palette) {
+async function renderImagesAndPdf(slides, palette) {
   const outputDir = getUniqueOutputDir("./output");
   fs.mkdirSync(outputDir, { recursive: true });
 
   console.log(
-    `[2/3] Selected Theme: ${palette.name}. Saving files to "${outputDir}"...`,
+    `[2/3] Selected Theme: ${palette.name}. Processing slides in "${outputDir}"...`,
   );
 
   const browser = await puppeteer.launch({ headless: true });
@@ -162,24 +162,37 @@ async function renderImages(slides, palette) {
 
   await page.setViewport({ width: 1080, height: 1350, deviceScaleFactor: 2 });
 
+  const pdfDoc = await PDFDocument.create();
+
   for (let i = 0; i < slides.length; i++) {
     const html = getHtmlTemplate(slides[i], palette);
     await page.setContent(html, { waitUntil: "load", timeout: 60000 });
 
     const fileName = `${outputDir}/slide-${i + 1}.png`;
     await page.screenshot({ path: fileName });
-    console.log(`✓ Rendered: ${fileName}`);
+    console.log(`✓ Rendered PNG: ${fileName}`);
+
+    const imgBytes = fs.readFileSync(fileName);
+    const image = await pdfDoc.embedPng(imgBytes);
+    const pdfPage = pdfDoc.addPage([1080, 1350]);
+    pdfPage.drawImage(image, { x: 0, y: 0, width: 1080, height: 1350 });
   }
 
   await browser.close();
-  console.log(`[3/3] Build complete! Check the ${outputDir} directory.`);
+
+  const pdfBytes = await pdfDoc.save();
+  const pdfPath = `${outputDir}/carousel.pdf`;
+  fs.writeFileSync(pdfPath, pdfBytes);
+
+  console.log(`✓ Generated Carousel PDF: ${pdfPath}`);
+  console.log(`[3/3] Build complete! Upload "${pdfPath}"`);
 }
 
 async function main() {
   try {
     const slides = await generateSlideContent(topic);
     const randomPalette = palettes[Math.floor(Math.random() * palettes.length)];
-    await renderImages(slides, randomPalette);
+    await renderImagesAndPdf(slides, randomPalette);
   } catch (error) {
     console.error("Execution failed:", error.message);
   }
