@@ -31,6 +31,18 @@ if (!topic) {
   process.exit(1);
 }
 
+function getUniqueOutputDir(basePath = "./output") {
+  if (!fs.existsSync(basePath)) {
+    return basePath;
+  }
+
+  let counter = 2;
+  while (fs.existsSync(`${basePath}-${counter}`)) {
+    counter++;
+  }
+  return `${basePath}-${counter}`;
+}
+
 async function generateSlideContent(topic) {
   console.log(`[1/3] Generating content for: "${topic}"...`);
 
@@ -132,13 +144,12 @@ function getHtmlTemplate(slide, palette) {
 }
 
 async function renderImages(slides, palette) {
-  console.log(
-    `[2/3] Selected Theme: ${palette.name}. Initializing build process...`,
-  );
+  const outputDir = getUniqueOutputDir("./output");
+  fs.mkdirSync(outputDir, { recursive: true });
 
-  if (!fs.existsSync("./output")) {
-    fs.mkdirSync("./output");
-  }
+  console.log(
+    `[2/3] Selected Theme: ${palette.name}. Saving files to "${outputDir}"...`,
+  );
 
   const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
@@ -149,13 +160,13 @@ async function renderImages(slides, palette) {
     const html = getHtmlTemplate(slides[i], palette);
     await page.setContent(html, { waitUntil: "load", timeout: 60000 });
 
-    const fileName = `./output/slide-${i + 1}.png`;
+    const fileName = `${outputDir}/slide-${i + 1}.png`;
     await page.screenshot({ path: fileName });
     console.log(`✓ Rendered: ${fileName}`);
   }
 
   await browser.close();
-  console.log(`[3/3] Build complete! Check the /output directory.`);
+  console.log(`[3/3] Build complete! Check the ${outputDir} directory.`);
 }
 
 async function main() {
