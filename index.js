@@ -87,10 +87,18 @@ function getHtmlTemplate(slide, palette) {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <script src="https://cdn.tailwindcss.com"></script>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+      
+      <!-- Highlight.js Syntax Highlighting Theme (Tokyo Night Dark) -->
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+      
       <style>
         body { font-family: 'Inter', sans-serif; background-color: ${palette.bg}; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         span { color: ${palette.textHi}; }
+        /* Make highlight.js background transparent to match your aesthetic */
+        .hljs { background: transparent !important; padding: 0 !important; }
+        pre { margin: 0 !important; padding: 0 !important; }
       </style>
     </head>
     <body class="text-white flex items-center justify-center h-screen w-screen m-0 p-0 overflow-hidden">
@@ -118,14 +126,11 @@ function getHtmlTemplate(slide, palette) {
             ${slide.title}
           </h1>
           
-         ${
-           slide.codeSnippet
-             ? `
-<div class="font-mono text-2xl font-medium leading-relaxed p-8 rounded-xl bg-black/40 border border-gray-800 whitespace-pre-wrap break-words" style="color: ${palette.textHi};">
-  <pre class="whitespace-pre-wrap break-words"><code>${slide.codeSnippet}</code></pre>
-</div>`
-             : ""
-         }
+       ${
+         slide.codeSnippet
+           ? `<div class="font-mono text-2xl font-medium leading-relaxed p-6 rounded-2xl border border-white/10 bg-transparent"><pre class="m-0 p-0 whitespace-pre-wrap break-words"><code class="language-javascript m-0 p-0">${slide.codeSnippet.trim()}</code></pre></div>`
+           : ""
+       }
 
           <p class="text-gray-400 text-3xl leading-normal max-w-[95%] pt-4">
             ${slide.description}
@@ -138,6 +143,11 @@ function getHtmlTemplate(slide, palette) {
         </div>
 
       </div>
+
+      <script>
+        // Trigger Highlight.js on page render
+        hljs.highlightAll();
+      </script>
     </body>
     </html>
     `;
